@@ -277,7 +277,7 @@ app.get('/api/media', async (req, res) => {
 });
 
 // ==================== PEDIDOS ====================
-app.get('/api/pedidos', async (req, res) => {
+app.get('/api/pedidos', authenticateToken, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('pedidos')
@@ -291,7 +291,7 @@ app.get('/api/pedidos', async (req, res) => {
   }
 });
 
-app.get('/api/pedidos/stats', async (req, res) => {
+app.get('/api/pedidos/stats', authenticateToken, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('pedidos')

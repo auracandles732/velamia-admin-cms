@@ -34,12 +34,9 @@ git push -u origin main
 
 10. Deploy
 
-## 📝 Credenciales por defecto
+## 📝 Credenciales
 
-- Email: `auracandles732@gmail.com`
-- Contraseña: `Velamia2026Admin`
-
-⚠️ **Cambiar contraseña después del primer login**
+El acceso se configura con las variables `ADMIN_EMAIL` y `ADMIN_PASSWORD` en Render. Nunca escribirlas en este repositorio (es público).
 
 ## 📚 Estructura
 

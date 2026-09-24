@@ -63,10 +63,29 @@ function switchTab(tab, e) {
   document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
 
   document.getElementById(tab).classList.add('active');
-  event.target.classList.add('active');
+  e.currentTarget.classList.add('active');
 }
 
 // ==================== LOAD DATA ====================
+async function apiGet(path) {
+  const res = await fetch(`${API_URL}${path}`, {
+    headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
+  });
+  if (res.status === 401 || res.status === 403) {
+    localStorage.removeItem('authToken');
+    location.reload();
+    throw new Error('Sesión expirada');
+  }
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+  return data;
+}
+
+function showTableError(tbodyId, cols, err) {
+  document.getElementById(tbodyId).innerHTML =
+    `<tr><td colspan="${cols}" style="text-align:center;color:#E63946;">⚠️ No se pudo cargar: ${err.message}</td></tr>`;
+}
+
 async function loadData() {
   await loadProductos();
   await loadTextos();
@@ -76,8 +95,7 @@ async function loadData() {
 
 async function loadProductos() {
   try {
-    const res = await fetch(`${API_URL}/api/productos`);
-    const productos = await res.json();
+    const productos = await apiGet('/api/productos');
 
     const tbody = document.getElementById('productosBody');
     tbody.innerHTML = '';
@@ -100,14 +118,13 @@ async function loadProductos() {
       tbody.appendChild(row);
     });
   } catch (err) {
-    console.error('Error loading productos:', err);
+    showTableError('productosBody', 6, err);
   }
 }
 
 async function loadTextos() {
   try {
-    const res = await fetch(`${API_URL}/api/textos`);
-    const textos = await res.json();
+    const textos = await apiGet('/api/textos');
 
     const secciones = ['hero', 'politicas', 'proceso', 'faq'];
     const container = document.getElementById('textosContainer');
@@ -123,7 +140,7 @@ async function loadTextos() {
           <div class="texto-toolbar">
             <button onclick="formatText('bold')"><b>B</b></button>
             <button onclick="formatText('italic')"><i>I</i></button>
-            <button onclick="formatText('underline')<u>U</u></button>
+            <button onclick="formatText('underline')"><u>U</u></button>
           </div>
           <textarea class="texto-content" id="texto-${seccion}" placeholder="Escribe el contenido aquí..."></textarea>
         </div>
@@ -138,14 +155,14 @@ async function loadTextos() {
       }
     });
   } catch (err) {
-    console.error('Error loading textos:', err);
+    document.getElementById('textosContainer').innerHTML =
+      `<p style="color:#E63946;">⚠️ No se pudieron cargar los textos: ${err.message}</p>`;
   }
 }
 
 async function loadPedidos() {
   try {
-    const res = await fetch(`${API_URL}/api/pedidos`);
-    const pedidos = await res.json();
+    const pedidos = await apiGet('/api/pedidos');
 
     const tbody = document.getElementById('pedidosBody');
     tbody.innerHTML = '';
@@ -164,24 +181,24 @@ async function loadPedidos() {
       tbody.appendChild(row);
     });
   } catch (err) {
-    console.error('Error loading pedidos:', err);
+    showTableError('pedidosBody', 6, err);
   }
 }
 
 async function loadStats() {
   try {
-    const resStats = await fetch(`${API_URL}/api/pedidos/stats`);
-    const stats = await resStats.json();
-
+    const stats = await apiGet('/api/pedidos/stats');
     document.getElementById('totalPedidos').textContent = stats.totalPedidos;
     document.getElementById('totalVentas').textContent = `$${stats.totalVentas}`;
     document.getElementById('pedidosMes').textContent = stats.pedidosMes;
-
-    const resProds = await fetch(`${API_URL}/api/productos`);
-    const prods = await resProds.json();
+  } catch (err) {
+    ['totalPedidos', 'totalVentas', 'pedidosMes'].forEach(id => document.getElementById(id).textContent = '—');
+  }
+  try {
+    const prods = await apiGet('/api/productos');
     document.getElementById('totalProductos').textContent = prods.filter(p => p.activo).length;
   } catch (err) {
-    console.error('Error loading stats:', err);
+    document.getElementById('totalProductos').textContent = '—';
   }
 }
 
