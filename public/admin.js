@@ -202,7 +202,7 @@ function cancelProductForm() {
 async function editProducto(id) {
   try {
     const res = await fetch(`${API_URL}/api/productos/${id}`);
-    const p = res.json();
+    const p = await res.json();
 
     currentEditingProductId = id;
     document.getElementById('productFormTitle').textContent = 'Editar Producto';
