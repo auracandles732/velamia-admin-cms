@@ -2,10 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const bcryptjs = require('bcryptjs');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
@@ -22,8 +20,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
-// Multer para upload de fotos
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 // Auth middleware
 function authenticateToken(req, res, next) {
@@ -61,7 +58,8 @@ app.get('/api/productos', async (req, res) => {
     const { data, error } = await supabase
       .from('productos')
       .select('*')
-      .order('orden', { ascending: true });
+      .order('orden', { ascending: true })
+      .order('id', { ascending: false });
 
     if (error) throw error;
     res.json(data || []);
@@ -85,25 +83,55 @@ app.get('/api/productos/:id', async (req, res) => {
   }
 });
 
+const UNIDADES = ['docena', 'unidad'];
+
+function precioOpcional(v) {
+  if (v === '' || v === null || v === undefined) return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? n : NaN;
+}
+
+// Devuelve { fila } o { error } a partir del body del panel.
+function productoDesdeBody(b) {
+  const nombre = String(b.nombre || '').trim();
+  const precio = Number(b.precio);
+  if (!nombre) return { error: 'El nombre es obligatorio' };
+  if (!Number.isFinite(precio) || precio <= 0) return { error: 'El precio debe ser mayor a 0' };
+
+  const precio_oferta = precioOpcional(b.precio_oferta);
+  const precio_anterior = precioOpcional(b.precio_anterior);
+  if (Number.isNaN(precio_oferta) || Number.isNaN(precio_anterior)) return { error: 'Precio de oferta inválido' };
+
+  const imagenes = Array.isArray(b.imagenes) ? b.imagenes.filter(u => typeof u === 'string' && u.startsWith('https://')) : [];
+
+  return {
+    fila: {
+      nombre,
+      descripcion: String(b.descripcion || '').trim(),
+      precio,
+      precio_oferta,
+      precio_anterior,
+      categoria: String(b.categoria || '').trim() || null,
+      etiqueta: String(b.etiqueta || '').trim() || null,
+      unidad: UNIDADES.includes(b.unidad) ? b.unidad : 'docena',
+      imagenes,
+      foto_url: imagenes[0] || null,
+      activo: b.activo !== false,
+      nuevo: b.nuevo === true,
+      mas_vendido: b.mas_vendido === true,
+      oculto: b.oculto === true,
+      ...(b.orden !== undefined && Number.isFinite(Number(b.orden)) ? { orden: Number(b.orden) } : {})
+    }
+  };
+}
+
 app.post('/api/productos', authenticateToken, async (req, res) => {
   try {
-    const { nombre, descripcion, precio, foto_url, scents, colores, stock, activo, orden } = req.body;
+    const { fila, error: invalido } = productoDesdeBody(req.body);
+    if (invalido) return res.status(400).json({ error: invalido });
+    if (fila.orden === undefined) fila.orden = 0;
 
-    const { data, error } = await supabase
-      .from('productos')
-      .insert([{
-        nombre,
-        descripcion,
-        precio: parseFloat(precio),
-        foto_url,
-        scents: scents || [],
-        colores: colores || [],
-        stock: parseInt(stock) || 0,
-        activo: activo !== false,
-        orden: parseInt(orden) || 999
-      }])
-      .select();
-
+    const { data, error } = await supabase.from('productos').insert([fila]).select();
     if (error) throw error;
     res.json(data[0]);
   } catch (err) {
@@ -113,26 +141,17 @@ app.post('/api/productos', authenticateToken, async (req, res) => {
 
 app.put('/api/productos/:id', authenticateToken, async (req, res) => {
   try {
-    const { nombre, descripcion, precio, foto_url, scents, colores, stock, activo, orden } = req.body;
+    const { fila, error: invalido } = productoDesdeBody(req.body);
+    if (invalido) return res.status(400).json({ error: invalido });
 
     const { data, error } = await supabase
       .from('productos')
-      .update({
-        nombre,
-        descripcion,
-        precio: parseFloat(precio),
-        foto_url,
-        scents: scents || [],
-        colores: colores || [],
-        stock: parseInt(stock) || 0,
-        activo: activo !== false,
-        orden: parseInt(orden) || 999,
-        updated_at: new Date().toISOString()
-      })
+      .update({ ...fila, updated_at: new Date().toISOString() })
       .eq('id', req.params.id)
       .select();
 
     if (error) throw error;
+    if (!data.length) return res.status(404).json({ error: 'Producto no encontrado' });
     res.json(data[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -230,33 +249,33 @@ app.delete('/api/textos/:id', authenticateToken, async (req, res) => {
 });
 
 // ==================== MEDIA (FOTOS) ====================
-app.post('/api/media/upload', authenticateToken, upload.single('file'), async (req, res) => {
+const TIPOS_IMAGEN = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+
+app.post('/api/media/upload', authenticateToken, (req, res, next) => {
+  upload.single('file')(req, res, err => {
+    if (err) return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'La foto pesa más de 5 MB' : err.message });
+    next();
+  });
+}, async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'No file provided' });
+    if (!req.file) return res.status(400).json({ error: 'No se recibió ninguna foto' });
+    const ext = TIPOS_IMAGEN[req.file.mimetype];
+    if (!ext) return res.status(400).json({ error: 'Solo se aceptan fotos JPG, PNG o WEBP' });
 
-    const fileBuffer = fs.readFileSync(req.file.path);
-    const fileName = `${Date.now()}-${req.file.originalname}`;
-    const filePath = `products/${fileName}`;
+    const base = path.parse(req.file.originalname).name
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 60) || 'foto';
+    const fileName = `${base}_${Date.now()}.${ext}`;
 
-    const { data, error } = await supabase.storage
-      .from('admin-storage')
-      .upload(filePath, fileBuffer);
-
+    const { error } = await supabase.storage
+      .from('productos')
+      .upload(fileName, req.file.buffer, { contentType: req.file.mimetype });
     if (error) throw error;
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('admin-storage')
-      .getPublicUrl(filePath);
+    const { data: { publicUrl } } = supabase.storage.from('productos').getPublicUrl(fileName);
+    await supabase.from('media').insert([{ filename: fileName, url: publicUrl, tipo: 'producto' }]);
 
-    const { data: mediaData, error: mediaError } = await supabase
-      .from('media')
-      .insert([{ filename: fileName, url: publicUrl, tipo: 'producto' }])
-      .select();
-
-    if (mediaError) throw mediaError;
-
-    fs.unlinkSync(req.file.path);
-    res.json({ url: publicUrl, id: mediaData[0].id });
+    res.json({ url: publicUrl });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

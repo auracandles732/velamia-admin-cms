@@ -74,104 +74,171 @@
       <!-- PRODUCTOS -->
       <section id="productos" class="tab-content">
         <div class="content-header">
-          <h2>📦 Productos</h2>
-          <button onclick="showProductForm()" class="btn-primary">➕ Nuevo Producto</button>
-        </div>
-
-        <!-- Form Producto -->
-        <div id="productFormContainer" class="form-container" style="display:none;">
-          <div class="form-card">
-            <h3 id="productFormTitle">Crear Producto</h3>
-            <form id="productForm" class="product-form">
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Nombre *</label>
-                  <input type="text" id="prodNombre" placeholder="Vela Navidad" required>
-                </div>
-                <div class="form-group">
-                  <label>Precio *</label>
-                  <input type="number" id="prodPrecio" placeholder="18.50" step="0.01" required>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label>Descripción</label>
-                <textarea id="prodDescripcion" placeholder="Descripción del producto" rows="3"></textarea>
-              </div>
-
-              <div class="form-group">
-                <label>Foto Principal</label>
-                <input type="text" id="prodFotoUrl" placeholder="https://..." />
-                <button type="button" class="btn-secondary" onclick="document.getElementById('prodFotoInput').click()">📤 Subir foto</button>
-                <input type="file" id="prodFotoInput" style="display:none;" accept="image/*">
-                <div id="fotoPreview" style="margin-top:10px;"></div>
-              </div>
-
-              <div class="form-group">
-                <label>Aromas (Scents)</label>
-                <div class="checkbox-group">
-                  <label><input type="checkbox" class="scent-checkbox" value="Vanilla"> Vanilla</label>
-                  <label><input type="checkbox" class="scent-checkbox" value="Rose"> Rose</label>
-                  <label><input type="checkbox" class="scent-checkbox" value="Cinnamon"> Cinnamon</label>
-                  <label><input type="checkbox" class="scent-checkbox" value="Lavender"> Lavender</label>
-                  <label><input type="checkbox" class="scent-checkbox" value="Jasmine"> Jasmine</label>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label>Colores disponibles</label>
-                <div class="checkbox-group">
-                  <label><input type="checkbox" class="color-checkbox" value="Rojo"> Rojo</label>
-                  <label><input type="checkbox" class="color-checkbox" value="Azul"> Azul</label>
-                  <label><input type="checkbox" class="color-checkbox" value="Verde"> Verde</label>
-                  <label><input type="checkbox" class="color-checkbox" value="Oro"> Oro</label>
-                  <label><input type="checkbox" class="color-checkbox" value="Plateado"> Plateado</label>
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Stock</label>
-                  <input type="number" id="prodStock" value="0">
-                </div>
-                <div class="form-group">
-                  <label>Orden (Priority)</label>
-                  <input type="number" id="prodOrden" value="999">
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label>
-                  <input type="checkbox" id="prodActivo" checked>
-                  ✓ Producto Activo
-                </label>
-              </div>
-
-              <div class="form-actions">
-                <button type="submit" class="btn-primary">💾 Guardar</button>
-                <button type="button" onclick="cancelProductForm()" class="btn-secondary">❌ Cancelar</button>
-              </div>
-            </form>
+          <div>
+            <h2>📦 Productos</h2>
+            <p id="prodResumen">Cargando catálogo…</p>
           </div>
         </div>
 
-        <!-- Tabla Productos -->
-        <div class="table-container">
-          <table id="productosTable" class="data-table">
-            <thead>
-              <tr>
-                <th>Foto</th>
-                <th>Nombre</th>
-                <th>Precio</th>
-                <th>Stock</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="productosBody">
-              <tr><td colspan="6" style="text-align:center;">Cargando...</td></tr>
-            </tbody>
-          </table>
+        <!-- Agregar producto -->
+        <div class="panel-card">
+          <div class="panel-card-head">
+            <span class="panel-card-icon">＋</span>
+            <div>
+              <h3>Agregar producto al catálogo</h3>
+              <p>Completa lo básico. Luego puedes abrir <strong>Editar</strong> para agregar descripción, más fotos y oferta.</p>
+            </div>
+          </div>
+          <form id="quickAddForm" class="quick-add" novalidate>
+            <label class="dropzone" id="quickDrop">
+              <input type="file" id="quickFoto" accept="image/jpeg,image/png,image/webp" hidden>
+              <span class="dropzone-empty" id="quickDropEmpty">
+                <span class="dropzone-icon">🖼️</span>
+                <span>Haz clic para subir una foto<br>o arrástrala aquí</span>
+                <small>JPG, PNG o WEBP · máx. 5 MB</small>
+              </span>
+              <img id="quickDropPreview" alt="" hidden>
+            </label>
+            <div class="quick-fields">
+              <div class="field">
+                <label for="qaNombre">Nombre del producto</label>
+                <input id="qaNombre" type="text" placeholder="Ej: Osito en nube" maxlength="120">
+              </div>
+              <div class="field">
+                <label for="qaPrecio">Precio ($)</label>
+                <input id="qaPrecio" type="number" step="0.01" min="0" placeholder="Ej: 30.00">
+              </div>
+              <div class="field">
+                <label for="qaUnidad">Se vende por</label>
+                <select id="qaUnidad">
+                  <option value="docena">Docena</option>
+                  <option value="unidad">Unidad</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="qaCategoria">Categoría / evento</label>
+                <select id="qaCategoria" class="categoria-select"></select>
+              </div>
+              <div class="field">
+                <label for="qaEtiqueta">Etiqueta</label>
+                <input id="qaEtiqueta" type="text" placeholder="Ej: Baby Shower, Premium" maxlength="40">
+              </div>
+              <div class="field field-action">
+                <button type="submit" class="btn-accent" id="qaSubmit">＋ Agregar producto</button>
+              </div>
+              <p class="form-msg" id="qaMsg"></p>
+            </div>
+          </form>
+        </div>
+
+        <!-- Catálogo -->
+        <div class="panel-card">
+          <div class="catalog-toolbar">
+            <div class="panel-card-head">
+              <span class="panel-card-icon">▦</span>
+              <div>
+                <h3>Tus productos</h3>
+                <p>Edita, duplica o elimina los productos de tu tienda</p>
+              </div>
+            </div>
+            <div class="catalog-controls">
+              <input type="search" id="prodBuscar" placeholder="🔍 Buscar productos…">
+              <select id="prodFiltroCat" class="categoria-select" data-todas="1"></select>
+              <select id="prodOrdenar">
+                <option value="tienda">Orden de la tienda</option>
+                <option value="recientes">Más recientes</option>
+                <option value="precio-asc">Precio: menor a mayor</option>
+                <option value="precio-desc">Precio: mayor a menor</option>
+                <option value="nombre">Nombre A–Z</option>
+              </select>
+              <div class="view-toggle" role="group" aria-label="Vista">
+                <button type="button" data-vista="grid" class="active" title="Cuadrícula">▦</button>
+                <button type="button" data-vista="lista" title="Lista">☰</button>
+              </div>
+            </div>
+          </div>
+          <div id="productosGrid" class="product-grid">
+            <p class="grid-msg">Cargando…</p>
+          </div>
+        </div>
+
+        <!-- Modal editar -->
+        <div class="modal-backdrop" id="editModal" hidden>
+          <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="editTitulo">
+            <div class="modal-top">
+              <h3 id="editTitulo">Editar producto</h3>
+              <button type="button" class="modal-x" data-cerrar>✕</button>
+            </div>
+            <form id="editForm" novalidate>
+              <div class="edit-grid">
+                <div class="edit-fotos">
+                  <label>Fotos <small>(la primera es la portada)</small></label>
+                  <div class="fotos-lista" id="editFotos"></div>
+                  <label class="btn-soft">
+                    <input type="file" id="editFotoInput" accept="image/jpeg,image/png,image/webp" multiple hidden>
+                    📤 Agregar fotos
+                  </label>
+                </div>
+                <div class="edit-campos">
+                  <div class="field">
+                    <label for="edNombre">Nombre</label>
+                    <input id="edNombre" type="text" maxlength="120">
+                  </div>
+                  <div class="field">
+                    <label for="edDescripcion">Descripción</label>
+                    <textarea id="edDescripcion" rows="3" maxlength="400"></textarea>
+                  </div>
+                  <div class="field-row">
+                    <div class="field">
+                      <label for="edPrecio">Precio ($)</label>
+                      <input id="edPrecio" type="number" step="0.01" min="0">
+                    </div>
+                    <div class="field">
+                      <label for="edUnidad">Se vende por</label>
+                      <select id="edUnidad">
+                        <option value="docena">Docena</option>
+                        <option value="unidad">Unidad</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="field-row">
+                    <div class="field">
+                      <label for="edCategoria">Categoría</label>
+                      <select id="edCategoria" class="categoria-select"></select>
+                    </div>
+                    <div class="field">
+                      <label for="edEtiqueta">Etiqueta</label>
+                      <input id="edEtiqueta" type="text" maxlength="40">
+                    </div>
+                  </div>
+                  <fieldset class="oferta-box">
+                    <legend>Oferta (opcional)</legend>
+                    <div class="field-row">
+                      <div class="field">
+                        <label for="edPrecioOferta">Precio de oferta ($)</label>
+                        <input id="edPrecioOferta" type="number" step="0.01" min="0" placeholder="Vacío = sin oferta">
+                      </div>
+                      <div class="field">
+                        <label for="edPrecioAnterior">Precio anterior tachado ($)</label>
+                        <input id="edPrecioAnterior" type="number" step="0.01" min="0" placeholder="Opcional">
+                      </div>
+                    </div>
+                  </fieldset>
+                  <div class="toggles">
+                    <label><input type="checkbox" id="edActivo"> Visible en la tienda</label>
+                    <label><input type="checkbox" id="edNuevo"> Marcar como NUEVO</label>
+                    <label><input type="checkbox" id="edMasVendido"> Más vendido</label>
+                    <label><input type="checkbox" id="edOculto"> Oculto (solo por enlace / pruebas)</label>
+                  </div>
+                </div>
+              </div>
+              <p class="form-msg" id="editMsg"></p>
+              <div class="modal-actions">
+                <button type="button" class="btn-soft" data-cerrar>Cancelar</button>
+                <button type="submit" class="btn-accent" id="editGuardar">💾 Guardar cambios</button>
+              </div>
+            </form>
+          </div>
         </div>
       </section>
 
@@ -214,5 +281,6 @@
   </div>
 
   <script src="/admin.js"></script>
+  <script src="/productos.js"></script>
 </body>
 </html>
