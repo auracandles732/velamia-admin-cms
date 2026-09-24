@@ -36,7 +36,7 @@
       <ul class="nav-tabs">
         <li><a href="#" onclick="switchTab('dashboard', event)" class="tab-link active">📊 Dashboard</a></li>
         <li><a href="#" onclick="switchTab('productos', event)" class="tab-link">📦 Productos</a></li>
-        <li><a href="#" onclick="switchTab('textos', event)" class="tab-link">📝 Textos</a></li>
+        <li><a href="#" onclick="switchTab('pagina', event)" class="tab-link">🌐 Página web</a></li>
         <li><a href="#" onclick="switchTab('pedidos', event)" class="tab-link">💳 Pedidos</a></li>
       </ul>
       <div class="nav-footer">
@@ -45,6 +45,16 @@
     </nav>
 
     <main class="admin-content">
+      <div class="publish-bar" id="publishBar">
+        <div class="publish-info">
+          <span class="publish-dot" id="publishDot"></span>
+          <span id="publishEstado">Revisando estado de publicación…</span>
+        </div>
+        <div class="publish-actions">
+          <a href="https://velamia.shop" target="_blank" rel="noopener" class="btn-soft">Ver la web ↗</a>
+          <button type="button" class="btn-accent" id="btnPublicar">🌐 Publicar en la web</button>
+        </div>
+      </div>
       <!-- DASHBOARD -->
       <section id="dashboard" class="tab-content active">
         <div class="content-header">
@@ -242,14 +252,31 @@
         </div>
       </section>
 
-      <!-- TEXTOS -->
-      <section id="textos" class="tab-content">
+      <!-- PÁGINA WEB -->
+      <section id="pagina" class="tab-content">
         <div class="content-header">
-          <h2>📝 Textos de Página</h2>
+          <div>
+            <h2>🌐 Página web</h2>
+            <p>Edita cada parte de velamia.shop. Guarda cada sección y luego toca <strong>Publicar en la web</strong>.</p>
+          </div>
         </div>
-
-        <div class="textos-grid" id="textosContainer">
-          <!-- Se llena dinámicamente -->
+        <div id="sitioLista" class="sitio-lista"><p class="grid-msg">Cargando…</p></div>
+        <div id="sitioEditor" class="panel-card sitio-editor" hidden>
+          <div class="sitio-editor-top">
+            <button type="button" class="btn-soft" id="sitioVolver">← Secciones</button>
+            <div class="sitio-editor-titulo">
+              <h3 id="sitioTitulo"></h3>
+              <p id="sitioDescripcion"></p>
+            </div>
+          </div>
+          <form id="sitioForm" novalidate>
+            <div id="sitioCampos"></div>
+            <p class="form-msg" id="sitioMsg"></p>
+            <div class="sitio-editor-acciones">
+              <button type="button" class="btn-soft" id="sitioRestaurar">Descartar cambios</button>
+              <button type="submit" class="btn-accent" id="sitioGuardar">💾 Guardar sección</button>
+            </div>
+          </form>
         </div>
       </section>
 
@@ -280,7 +307,9 @@
     </main>
   </div>
 
+  <script src="/sitio-schema.js"></script>
   <script src="/admin.js"></script>
   <script src="/productos.js"></script>
+  <script src="/sitio.js"></script>
 </body>
 </html>

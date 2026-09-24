@@ -197,10 +197,11 @@ async function agregarRapido(e) {
       imagenes, activo: true, nuevo: true
     });
     limpiarQuick();
-    mensaje(msg, `✅ "${nombre}" agregado. Aparece primero en la lista.`, 'ok');
+    mensaje(msg, `✅ "${nombre}" agregado. Toca "Publicar en la web" para que aparezca en la tienda.`, 'ok');
     $('prodOrdenar').value = 'tienda';
     await loadProductos();
     loadStats();
+    marcarPendiente();
   } catch (err) {
     mensaje(msg, '⚠️ ' + err.message, 'error');
   } finally {
@@ -224,6 +225,7 @@ async function duplicar(p) {
     await apiSend('POST', '/api/productos', { ...datosProducto(p), nombre: `${p.nombre} (copia)`, activo: false });
     await loadProductos();
     loadStats();
+    marcarPendiente();
   } catch (err) {
     alert('No se pudo duplicar: ' + err.message);
   }
@@ -235,6 +237,7 @@ async function borrar(p) {
     await apiSend('DELETE', `/api/productos/${p.id}`);
     await loadProductos();
     loadStats();
+    marcarPendiente();
   } catch (err) {
     alert('No se pudo eliminar: ' + err.message);
   }
@@ -330,6 +333,7 @@ async function guardarEdit(e) {
     cerrarEditar();
     await loadProductos();
     loadStats();
+    marcarPendiente();
   } catch (err) {
     mensaje(msg, '⚠️ ' + err.message, 'error');
   } finally {

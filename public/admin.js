@@ -87,47 +87,9 @@ function showTableError(tbodyId, cols, err) {
 
 async function loadData() {
   await loadProductos();
-  await loadTextos();
+  await loadSitio();
   await loadPedidos();
   await loadStats();
-}
-
-async function loadTextos() {
-  try {
-    const textos = await apiGet('/api/textos');
-
-    const secciones = ['hero', 'politicas', 'proceso', 'faq'];
-    const container = document.getElementById('textosContainer');
-    container.innerHTML = '';
-
-    secciones.forEach(seccion => {
-      const textoData = textos.filter(t => t.seccion === seccion)[0];
-      const card = document.createElement('div');
-      card.className = 'texto-card';
-      card.innerHTML = `
-        <h3>📝 ${seccion.charAt(0).toUpperCase() + seccion.slice(1)}</h3>
-        <div class="texto-editor">
-          <div class="texto-toolbar">
-            <button onclick="formatText('bold')"><b>B</b></button>
-            <button onclick="formatText('italic')"><i>I</i></button>
-            <button onclick="formatText('underline')"><u>U</u></button>
-          </div>
-          <textarea class="texto-content" id="texto-${seccion}" placeholder="Escribe el contenido aquí..."></textarea>
-        </div>
-        <div class="texto-actions">
-          <button class="btn-primary" onclick="saveTexto('${seccion}')">💾 Guardar</button>
-        </div>
-      `;
-      container.appendChild(card);
-
-      if (textoData) {
-        document.getElementById(`texto-${seccion}`).value = textoData.contenido || '';
-      }
-    });
-  } catch (err) {
-    document.getElementById('textosContainer').innerHTML =
-      `<p style="color:#E63946;">⚠️ No se pudieron cargar los textos: ${err.message}</p>`;
-  }
 }
 
 async function loadPedidos() {
@@ -172,33 +134,3 @@ async function loadStats() {
   }
 }
 
-// ==================== TEXTOS ====================
-async function saveTexto(seccion) {
-  const contenido = document.getElementById(`texto-${seccion}`).value;
-
-  try {
-    const res = await fetch(`${API_URL}/api/textos`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`
-      },
-      body: JSON.stringify({
-        seccion,
-        titulo: seccion,
-        contenido,
-        orden: 1
-      })
-    });
-
-    if (res.ok) {
-      alert('✅ Texto guardado');
-    }
-  } catch (err) {
-    alert('Error guardando texto');
-  }
-}
-
-function formatText(command) {
-  document.execCommand(command, false, null);
-}

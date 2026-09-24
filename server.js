@@ -20,6 +20,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
+const registrarSitio = require('./sitio-routes');
+const { extraConOferta, marcarCambio } = registrarSitio;
+
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 // Auth middleware
@@ -133,6 +136,7 @@ app.post('/api/productos', authenticateToken, async (req, res) => {
 
     const { data, error } = await supabase.from('productos').insert([fila]).select();
     if (error) throw error;
+    await marcarCambio(supabase);
     res.json(data[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -144,6 +148,11 @@ app.put('/api/productos/:id', authenticateToken, async (req, res) => {
     const { fila, error: invalido } = productoDesdeBody(req.body);
     if (invalido) return res.status(400).json({ error: invalido });
 
+    const { data: actual, error: eAct } = await supabase.from('productos').select('precio_oferta, extra').eq('id', req.params.id).maybeSingle();
+    if (eAct) throw eAct;
+    if (!actual) return res.status(404).json({ error: 'Producto no encontrado' });
+    fila.extra = extraConOferta(actual.extra, actual.precio_oferta, fila);
+
     const { data, error } = await supabase
       .from('productos')
       .update({ ...fila, updated_at: new Date().toISOString() })
@@ -152,6 +161,7 @@ app.put('/api/productos/:id', authenticateToken, async (req, res) => {
 
     if (error) throw error;
     if (!data.length) return res.status(404).json({ error: 'Producto no encontrado' });
+    await marcarCambio(supabase);
     res.json(data[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -166,87 +176,14 @@ app.delete('/api/productos/:id', authenticateToken, async (req, res) => {
       .eq('id', req.params.id);
 
     if (error) throw error;
+    await marcarCambio(supabase);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ==================== TEXTOS ====================
-app.get('/api/textos', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('textos')
-      .select('*')
-      .order('orden', { ascending: true });
-
-    if (error) throw error;
-    res.json(data || []);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/textos/:seccion', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('textos')
-      .select('*')
-      .eq('seccion', req.params.seccion);
-
-    if (error) throw error;
-    res.json(data || []);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/textos', authenticateToken, async (req, res) => {
-  try {
-    const { seccion, titulo, contenido, orden } = req.body;
-
-    const { data, error } = await supabase
-      .from('textos')
-      .insert([{ seccion, titulo, contenido, orden: parseInt(orden) || 999 }])
-      .select();
-
-    if (error) throw error;
-    res.json(data[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.put('/api/textos/:id', authenticateToken, async (req, res) => {
-  try {
-    const { seccion, titulo, contenido, orden } = req.body;
-
-    const { data, error } = await supabase
-      .from('textos')
-      .update({ seccion, titulo, contenido, orden: parseInt(orden) || 999, updated_at: new Date().toISOString() })
-      .eq('id', req.params.id)
-      .select();
-
-    if (error) throw error;
-    res.json(data[0]);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.delete('/api/textos/:id', authenticateToken, async (req, res) => {
-  try {
-    const { error } = await supabase
-      .from('textos')
-      .delete()
-      .eq('id', req.params.id);
-
-    if (error) throw error;
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+registrarSitio(app, supabase, authenticateToken);
 
 // ==================== MEDIA (FOTOS) ====================
 const TIPOS_IMAGEN = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
