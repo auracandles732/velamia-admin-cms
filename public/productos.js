@@ -13,6 +13,9 @@ const TIPOS_FOTO = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FOTO = 5 * 1024 * 1024;
 
 let productos = [];
+// Con el CRM conectado, sus productos solo se editan en ofertas, etiqueta, destacados y orden.
+let syncCrm = false;
+const delCrm = p => !!(p && p.extra && p.extra.crm_id);
 let editando = null;
 let editImagenes = [];
 let quickFile = null;
@@ -76,6 +79,9 @@ function llenarCategorias() {
 async function loadProductos() {
   const grid = $('productosGrid');
   try {
+    try { syncCrm = !!(await apiGet('/api/sync/estado')).activo; } catch (_) { syncCrm = false; }
+    $('crmAviso').hidden = !syncCrm;
+    $('quickAddCard').hidden = syncCrm;
     productos = (await apiGet('/api/productos')).map((p, i) => ({ ...p, _pos: i }));
     llenarCategorias();
     renderProductos();
@@ -100,7 +106,8 @@ function tarjeta(p) {
     p.precio_oferta != null && '<span class="badge b-oferta">OFERTA</span>',
     p.mas_vendido && '<span class="badge b-top">MÁS VENDIDO</span>',
     !p.activo && '<span class="badge b-off">NO VISIBLE</span>',
-    p.oculto && '<span class="badge b-off">OCULTO</span>'
+    p.oculto && '<span class="badge b-off">OCULTO</span>',
+    delCrm(p) && '<span class="badge b-crm">CRM</span>'
   ].filter(Boolean).join('');
   const fotos = (p.imagenes || []).length;
   const img = p.foto_url
@@ -119,9 +126,9 @@ function tarjeta(p) {
       </div>
     </div>
     <div class="p-actions">
-      <button type="button" class="btn-card" data-accion="editar">✏️ Editar</button>
-      <button type="button" class="btn-card" data-accion="duplicar">⧉ Duplicar</button>
-      <button type="button" class="btn-card btn-card-danger" data-accion="borrar" title="Eliminar">🗑️</button>
+      <button type="button" class="btn-card" data-accion="editar">✏️ ${delCrm(p) ? 'Oferta y etiqueta' : 'Editar'}</button>
+      ${syncCrm ? '' : '<button type="button" class="btn-card" data-accion="duplicar">⧉ Duplicar</button>'}
+      ${delCrm(p) ? '' : '<button type="button" class="btn-card btn-card-danger" data-accion="borrar" title="Eliminar">🗑️</button>'}
     </div>
   </article>`;
 }
@@ -271,11 +278,15 @@ function abrirEditar(p) {
   $('edNuevo').checked = !!p.nuevo;
   $('edMasVendido').checked = !!p.mas_vendido;
   $('edOculto').checked = !!p.oculto;
-  mensaje($('editMsg'), '');
+  // Lo que viene del CRM no se edita aquí (se pisaría en la próxima sincronización).
+  const bloqueado = delCrm(p);
+  ['edNombre', 'edDescripcion', 'edPrecio', 'edUnidad', 'edCategoria', 'edActivo', 'edOculto', 'editFotoInput'].forEach(id => { $(id).disabled = bloqueado; });
+  $('editFotos').classList.toggle('bloqueado', bloqueado);
+  mensaje($('editMsg'), bloqueado ? '🔗 Nombre, precio, fotos, categoría y si se muestra se editan en el Catálogo del CRM.' : '');
   renderFotosEdit();
   $('editModal').hidden = false;
   document.body.style.overflow = 'hidden';
-  $('edNombre').focus();
+  (bloqueado ? $('edPrecioOferta') : $('edNombre')).focus();
 }
 
 function cerrarEditar() {
@@ -380,7 +391,7 @@ async function guardarEdit(e) {
   $('editFotoInput').addEventListener('change', e => { agregarFotosEdit([...e.target.files]); e.target.value = ''; });
   $('editFotos').addEventListener('click', e => {
     const btn = e.target.closest('.foto-btn');
-    if (!btn) return;
+    if (!btn || delCrm(editando)) return;
     const i = Number(btn.dataset.i);
     if (btn.classList.contains('foto-quitar')) editImagenes.splice(i, 1);
     else editImagenes.unshift(editImagenes.splice(i, 1)[0]);

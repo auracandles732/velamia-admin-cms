@@ -26,6 +26,8 @@ function productoTienda(r) {
   if (r.oculto) p.oculto = true;
   if (r.nuevo) p.nuevo = true;
   if (r.mas_vendido) p.extra = 'mas-vendidos'; else delete p.extra;
+  // El id del CRM es interno: no sale a la tienda.
+  delete p.crm_id;
 
   if (r.precio_oferta != null) {
     p.salePrice = Number(r.precio_oferta);
@@ -166,4 +168,6 @@ module.exports = function registrarSitio(app, supabase, auth) {
 };
 
 module.exports.extraConOferta = extraConOferta;
+module.exports.productoTienda = productoTienda;
+module.exports.BUCKET = BUCKET;
 module.exports.marcarCambio = supabase => guardarFila(supabase, CLAVE_CAMBIO, {});

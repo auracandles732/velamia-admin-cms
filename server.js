@@ -11,7 +11,8 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+// La lista de productos que manda el CRM puede pasar de 100 KB.
+app.use(express.json({ limit: '3mb' }));
 app.use(express.static('public'));
 
 // Supabase
@@ -22,6 +23,8 @@ const supabase = createClient(
 
 const registrarSitio = require('./sitio-routes');
 const { extraConOferta, marcarCambio } = registrarSitio;
+const registrarSync = require('./sync-routes');
+const { gestionado } = registrarSync;
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -130,6 +133,7 @@ function productoDesdeBody(b) {
 
 app.post('/api/productos', authenticateToken, async (req, res) => {
   try {
+    if (process.env.CRM_SYNC_KEY) return res.status(400).json({ error: 'Los productos nuevos se crean en el Catálogo del CRM: aparecen aquí solos.' });
     const { fila, error: invalido } = productoDesdeBody(req.body);
     if (invalido) return res.status(400).json({ error: invalido });
     if (fila.orden === undefined) fila.orden = 0;
@@ -148,9 +152,14 @@ app.put('/api/productos/:id', authenticateToken, async (req, res) => {
     const { fila, error: invalido } = productoDesdeBody(req.body);
     if (invalido) return res.status(400).json({ error: invalido });
 
-    const { data: actual, error: eAct } = await supabase.from('productos').select('precio_oferta, extra').eq('id', req.params.id).maybeSingle();
+    const { data: actual, error: eAct } = await supabase.from('productos').select('*').eq('id', req.params.id).maybeSingle();
     if (eAct) throw eAct;
     if (!actual) return res.status(404).json({ error: 'Producto no encontrado' });
+    // Los productos del CRM: nombre, descripción, precio, categoría, unidad, fotos y si se muestran se editan allá.
+    if (gestionado(actual)) {
+      for (const k of ['nombre', 'descripcion', 'precio', 'categoria', 'unidad', 'imagenes', 'foto_url', 'activo', 'oculto']) fila[k] = actual[k];
+      if (fila.precio_oferta != null && !(fila.precio_oferta < Number(actual.precio))) return res.status(400).json({ error: 'El precio de oferta debe ser menor al precio normal' });
+    }
     fila.extra = extraConOferta(actual.extra, actual.precio_oferta, fila);
 
     const { data, error } = await supabase
@@ -170,6 +179,8 @@ app.put('/api/productos/:id', authenticateToken, async (req, res) => {
 
 app.delete('/api/productos/:id', authenticateToken, async (req, res) => {
   try {
+    const { data: actual } = await supabase.from('productos').select('extra').eq('id', req.params.id).maybeSingle();
+    if (gestionado(actual)) return res.status(400).json({ error: 'Este producto es del Catálogo del CRM: para quitarlo de la web desmarca "Mostrar en la web" allá.' });
     const { error } = await supabase
       .from('productos')
       .delete()
@@ -184,6 +195,7 @@ app.delete('/api/productos/:id', authenticateToken, async (req, res) => {
 });
 
 registrarSitio(app, supabase, authenticateToken);
+registrarSync(app, supabase, authenticateToken);
 
 // ==================== MEDIA (FOTOS) ====================
 const TIPOS_IMAGEN = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };

@@ -687,6 +687,9 @@ body {
 .b-oferta { background: var(--danger); }
 .b-top { background: var(--gold); color: var(--dark); }
 .b-off { background: #555; }
+.b-crm { background: #4F5BD5; }
+.crm-aviso { border: 1px solid #C9CDF5; background: #F5F6FE; }
+.fotos-lista.bloqueado .foto-btn { display: none; }
 .p-body { padding: .85rem .9rem .5rem; flex: 1; display: flex; flex-direction: column; gap: .35rem; }
 .p-cat {
   align-self: flex-start; font-size: .62rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
