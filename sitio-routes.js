@@ -22,6 +22,9 @@ function productoTienda(r) {
     cat: r.categoria || '',
     unit: r.unidad === 'unidad' ? 'unidad' : 'docena'
   };
+  // Número del producto en este panel (el que usa el CRM en los enlaces de los anuncios: ?producto=<pid>); los que
+  // vinieron de la web vieja conservan su id de tienda, distinto de este.
+  if (r.id != null && r.id !== id) p.pid = r.id;
   if (imgs.length > 1) p.imgs = imgs;
   if (r.oculto) p.oculto = true;
   if (r.nuevo) p.nuevo = true;
