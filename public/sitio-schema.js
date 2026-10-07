@@ -4,6 +4,8 @@
     ['baby-shower', 'Baby Shower'], ['revelacion', 'Revelación de sexo'], ['bautizo', 'Bautizo'],
     ['xv-anos', 'XV años'], ['matrimonio', 'Matrimonio'], ['cumpleanos', 'Cumpleaños'],
     ['personajes', 'Personajes'], ['dia-madre', 'Día de la Madre'],
+    ['halloween', 'Halloween'], ['navidad', 'Navidad'], ['animales', 'Animales'], ['misa', 'Misa'],
+    ['comunion', 'Comunión'], ['graduacion', 'Graduación'],
     ['mas-vendidos', 'Más vendidos'], ['oferta', 'Ofertas'], ['all', 'Todos']
   ];
 
@@ -99,7 +101,7 @@
       campos: [
         ...encabezado(),
         { k: 'descripcion', tipo: 'parrafo', label: 'Descripción', max: 300 },
-        { k: 'eventos', tipo: 'lista', label: 'Botones de eventos', max: 12, nombreItem: 'evento', campos: [
+        { k: 'eventos', tipo: 'lista', label: 'Botones de eventos', max: 20, nombreItem: 'evento', campos: [
           { k: 'nombre', tipo: 'texto', label: 'Nombre visible', max: 30 },
           { k: 'categoria', tipo: 'categoria', label: 'Muestra la categoría' }
         ] },
@@ -199,7 +201,7 @@
       clave: 'footer', titulo: 'Pie de página y avisos', icono: '🔻',
       campos: [
         { k: 'descripcion', tipo: 'parrafo', label: 'Descripción bajo el logo', max: 200 },
-        { k: 'eventos', tipo: 'lista', label: 'Enlaces de eventos', max: 10, nombreItem: 'enlace', campos: [
+        { k: 'eventos', tipo: 'lista', label: 'Enlaces de eventos', max: 16, nombreItem: 'enlace', campos: [
           { k: 'texto', tipo: 'texto', label: 'Texto', max: 30 },
           { k: 'categoria', tipo: 'categoria', label: 'Muestra la categoría' }
         ] },

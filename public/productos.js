@@ -7,7 +7,13 @@ const CATEGORIAS = {
   'cumpleanos': 'Cumpleaños',
   'xv-anos': 'XV años',
   'personajes': 'Personajes',
-  'dia-madre': 'Día de la Madre'
+  'dia-madre': 'Día de la Madre',
+  'halloween': 'Halloween',
+  'navidad': 'Navidad',
+  'animales': 'Animales',
+  'misa': 'Misa',
+  'comunion': 'Comunión',
+  'graduacion': 'Graduación'
 };
 const TIPOS_FOTO = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FOTO = 5 * 1024 * 1024;
